@@ -5,7 +5,7 @@
       i18n:domain="userandgroupselectionwidget">
    <head><title></title></head>
    <body>
-     <metal:view_macro define-macro="view" 
+     <metal:view_macro define-macro="view"
                        tal:define="view context/@@userandgroupselect_view;
                                    value accessor;
                                    multiVal field/multiValued;">
@@ -17,11 +17,11 @@
        </tal:single>
 
        <tal:multival tal:condition="multiVal">
-           <tal:users tal:repeat="userid value">  
+           <tal:users tal:repeat="userid value">
              <div class="usergroupselect-value" tal:content="python: view.getUserOrGroupTitle(userid)">
                UserOrGroupTitle
              </div>
-           </tal:users> 
+           </tal:users>
        </tal:multival>
 
      </metal:view_macro>
@@ -31,7 +31,7 @@
        <metal:use use-macro="field_macro | here/widgets/field/macros/edit">
 
           <div metal:fill-slot="widget_body" class="userandgroupselect"
-               tal:define="multiVal python:test(field.multiValued, 1, 0); 
+               tal:define="multiVal python:test(field.multiValued, 1, 0);
                            field_required field/required;
                            fieldId fieldId | fieldName;
                            size widget/size | nothing;
@@ -99,15 +99,15 @@
                    />
               <input type="button"
                    class="destructive"
-                   value="Remove selected users"
+                   value="Remove selected item/s"
                    onClick=""
                    i18n:attributes="value"
                    tal:attributes="onClick string:javascript:userandgroupselect_removeEntry('${fieldId}', ${multiVal});
-                                   value python:multiVal and 'Remove selected users' or 'Remove user'"
+                                   value string:Remove selected item/s"
                    />
             </div>
 
-          </div> 
+          </div>
 
        </metal:use>
      </metal:edit_macro>

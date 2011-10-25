@@ -7,17 +7,30 @@ from Products.PlonePAS.interfaces.group import IGroupIntrospection
 
 from bda.cache import ICacheManager
 from bda.cache import Memcached
- 
+
 from interfaces import IGenericGroupTranslation
 from interfaces import IGenericFilterTranslation
 
 # make this dynamic, XXX
 CACHEPROVIDER = Memcached(['127.0.0.1:11211'])
 
+def get_user_display_name(user):
+    """ given a user returns its name for listing
+    """
+    name = ""
+    if user.hasProperty('fullname'):
+        name = user.getProperty('fullname')
+    if not name:
+        # weird: Membrane user don't have
+        # fullname property properly set
+        name = user.getProperty('title')
+    return name or user.getId()
+
+
 class MemberLookup(object):
     """This object contains the logic to list and search for users and groups.
     """
-    
+
     def __init__(self, context, request, widget):
         """Construct this object and do base initialization.
         """
@@ -35,8 +48,8 @@ class MemberLookup(object):
                 self.currentgroupid = group
             else:
                 raise
-        return            
-        
+        return
+
     def getGroups(self):
         """Return the groups.
         """
@@ -52,10 +65,10 @@ class MemberLookup(object):
             ret.append((gid, group.getGroupTitleOrName()))
         #print 'getGroups took %s' % str(time.time() - start)
         return ret
-        
+
     def getMembers(self):
         """Return the Users in the following form.
-        
+
         {
             'id': 'mmustermann',
             'fullname': 'Max Mustermann',
@@ -75,22 +88,22 @@ class MemberLookup(object):
             if fil == '*':
                 reduce == False
         if reduce:
-            users = self._reduceMembers(users, filter)        
+            users = self._reduceMembers(users, filter)
         return users
-    
+
     def _getUserIdsOfGroup(self, groupid):
         aclu = getToolByName(self.context, 'acl_users')
         for id, giplugin in aclu.plugins.listPlugins(IGroupIntrospection):
             userids = giplugin.getGroupMembers(groupid)
-            if userids: 
+            if userids:
                 return userids
         return []
-    
+
     def _readGroupMembers(self, gid):
         aclu = getToolByName(self.context, 'acl_users')
         user_ids = self._getUserIdsOfGroup(gid)
         return self._getUserDefs(user_ids)
-    
+
     def _searchUsers(self):
         st = self.searchabletext
         # TODO: Search is done over all available groups, not only over groups
@@ -101,32 +114,23 @@ class MemberLookup(object):
         users_dict = aclu.searchUsers(name=st)
         user_ids = [user['id'] for user in users_dict]
         return self._getUserDefs(user_ids)
-    
+
     def _getUserDefs(self, uids):
-        aclu = getToolByName(self.context, 'acl_users')
-        users = [aclu.getUserById(user_id) for user_id in uids]
+        pm = getToolByName(self.context, 'portal_membership')
+        users = [pm.getMemberById(user_id) for user_id in uids]
         ret = []
         for user in users:
             if user is None:
                 continue
-            user_id = user.getId()
-            for psheet in user.getOrderedPropertySheets():
-                if psheet.hasProperty('fullname'):
-                    user_fn = psheet.getProperty('fullname')
-                    if user_fn:
-                        # do not search other sheets
-                        break
-                else:
-                    user_fn = user_id
             entry = {
-                'id': user_id,
-                'fullname': user_fn,
+                'id': user.getId(),
+                'fullname': get_user_display_name(user),
             }
             ret.append(entry)
         ret.sort(cmp=lambda x, y: \
             x['fullname'].lower() > y['fullname'].lower() and 1 or -1)
         return ret
-    
+
     def _allocateFilter(self):
         filter = self.widget.groupIdFilter
         try:
@@ -138,7 +142,7 @@ class MemberLookup(object):
             if e[0] == 'Could not adapt':
                 pass
             else:
-                raise        
+                raise
         if type(filter) in types.StringTypes:
             filter = [filter,]
         return filter
@@ -169,7 +173,7 @@ class MemberLookup(object):
                 if fil == gid:
                     return True
         return False
-    
+
     def _reduceMembers(self, members, filter):
         """Reduce members to match filter.
         """
